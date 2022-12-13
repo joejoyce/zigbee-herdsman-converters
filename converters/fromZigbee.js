@@ -4593,60 +4593,6 @@ const converters = {
             }
         },
     },
-    tcp_thermostat: {
-        cluster: 'manuSpecificTuya',
-        type: ['commandDataResponse', 'commandDataReport'],
-        convert: (model, msg, publish, options, meta) => {
-            const dpValue = tuya.firstDpValue(msg, meta, 'etop_thermostat');
-            const dp = dpValue.dp;
-            const value = tuya.getDataValue(dpValue);
-
-            // Copied from etopThermostat above
-            switch (dp) {
-            case tuya.dataPoints.state: // on/off
-                return !value ? {system_mode: 'off'} : {};
-            case tuya.dataPoints.etopErrorStatus:
-                // Note: These values below appear to be the same as for the etopThermostat however
-                //       only two have been checked (and are thus present here).
-                return {
-                    low_temperature: (value & 1<<1) > 0 ? 'ON' : 'OFF',
-                    battery_low: (value & 1<<4) > 0,
-                };
-            case tuya.dataPoints.childLock:
-                return {child_lock: value ? 'LOCK' : 'UNLOCK'};
-            case tuya.dataPoints.heatingSetpoint:
-                return {current_heating_setpoint: (value / 10).toFixed(1)};
-            case tuya.dataPoints.localTemp:
-                return {local_temperature: (value / 10).toFixed(1)};
-            case tuya.dataPoints.mode:
-                switch (value) {
-                case 0: // manual
-                    return {system_mode: 'heat', away_mode: 'OFF', setup_mode: 'OFF', preset: 'none'};
-                case 1: // away
-                    return {system_mode: 'heat', away_mode: 'ON', setup_mode: 'OFF', preset: 'away'};
-                case 2: // auto
-                    return {system_mode: 'auto', away_mode: 'OFF', setup_mode: 'OFF', preset: 'none'};
-                case 3: // setup
-                    return {system_mode: 'off', away_mode: 'OFF', setup_mode: 'ON', preset: 'none'};
-                default:
-                    meta.logger.warn('zigbee-herdsman-converters:TCPThermostat: ' +
-                        `Preset ${value} is not recognized.`);
-                    break;
-                }
-                break;
-            case tuya.dataPoints.runningState:
-                return {running_state: value ? 'heat' : 'idle'};
-            // These are not present in the etopThermostat
-            case tuya.dataPoints.siterwellWindowDetection:
-                return {window_detection: value ? 'ON' : 'OFF'};
-            case tuya.dataPoints.TCPWindowState:
-                return {window: value ? 'CLOSED' : 'OPEN'};
-            default:
-                meta.logger.warn(`zigbee-herdsman-converters:TCPThermostat: Unrecognized DP #${
-                    dp} with data ${JSON.stringify(dpValue)}`);
-            }
-        },
-    },
     tuya_thermostat: {
         cluster: 'manuSpecificTuya',
         type: ['commandDataResponse', 'commandDataReport'],
